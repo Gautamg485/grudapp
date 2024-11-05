@@ -5,6 +5,11 @@
     <uses-permission android:name="android.permission.WRITE_SMS" />
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" /> <!-- For Android 13 and above -->
 
     <application
       android:name=".MainApplication"
@@ -26,5 +31,9 @@
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
       </activity>
+      <service android:name="com.dieam.reactnativepushnotification.modules.RNPushNotificationService" android:exported="false"/>
+      <receiver android:name="com.dieam.reactnativepushnotification.modules.RNPushNotificationReceiver" android:exported="false"/>
+      <receiver android:name="com.dieam.reactnativepushnotification.modules.RNPushNotificationOpenedReceiver" android:exported="false"/>
+      <receiver android:name="com.dieam.reactnativepushnotification.modules.RNPushNotificationBootReceiver" android:exported="false"/>
     </application>
 </manifest>

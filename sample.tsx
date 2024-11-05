@@ -2,23 +2,34 @@ import React, {useEffect, useState} from 'react';
 import {
   PermissionsAndroid,
   Platform,
-  // AppState,
+  AppState,
   Text,
   View,
+  TextInput,
+  Button,
   StyleSheet,
+  TouchableOpacity,
 } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
 import Sound from 'react-native-sound';
 import PushNotification from 'react-native-push-notification';
 
 const App = () => {
-  const TARGET_LATITUDE = 12.936119; // Replace with your target latitude
-  const TARGET_LONGITUDE = 80.1793316; // Replace with your target longitude
-  const RADIUS_METERS = 14;
+  // const TARGET_LATITUDE = 12.936119; // Replace with your target latitude
+  // const TARGET_LONGITUDE = 80.1793316; // Replace with your target longitude
+  // const RADIUS_METERS = 5;
 
-  // const [appState, setAppState] = useState(AppState.currentState);
+  const [appState, setAppState] = useState(AppState.currentState);
   const [currentDistance, setCurrentDistance] = useState(0);
-  let reached = false;
+  const [reached, setReached] = useState(false);
+
+  const [latField, setLatField] = useState(12.936119);
+  const [longField, setLongField] = useState(80.1793316);
+  const [radiusField, setRadiusField] = useState(5);
+
+  const [targetLatitude, setTargetLatitude] = useState(12.936119);
+  const [targetLongitude, setTargetLongitude] = useState(80.1793316);
+  const [targetRadius, setTargetRadius] = useState(5);
 
   const requestNotificationPermissions = async () => {
     await PermissionsAndroid.request(
@@ -93,9 +104,9 @@ const App = () => {
       },
       {
         enableHighAccuracy: true,
-        distanceFilter: 0, // Update every meter
-        // interval: 100, // Update every 5 seconds
-        // fastestInterval: 1000,
+        distanceFilter: 1, // Update every meter
+        interval: 1000, // Update every 5 seconds
+        fastestInterval: 1000,
         showsBackgroundLocationIndicator: true,
       },
     );
@@ -106,22 +117,27 @@ const App = () => {
   };
 
   const checkProximity = (latitude: number, longitude: number) => {
-    const distance = calculateDistance(
-      latitude,
-      longitude,
-      TARGET_LATITUDE,
-      TARGET_LONGITUDE,
-    );
-    console.log('RADIUS_METERS ' + RADIUS_METERS);
-    console.log('distance ' + distance);
-    setCurrentDistance(distance);
-    if (distance <= RADIUS_METERS) {
-      if (!reached) {
-        sendNotification();
-        reached = true;
+    console.log('targetLatitudetargetLatitude ' + targetLatitude);
+    console.log('targetLongitudetargetLongitude ' + targetLongitude);
+    console.log('targetRadiustargetRadius ' + targetRadius);
+    if (targetLatitude > 0 && targetLongitude > 0 && targetRadius > 0) {
+      const distance = calculateDistance(
+        latitude,
+        longitude,
+        targetLatitude,
+        targetLongitude,
+      );
+      console.log('RADIUS_METERS ' + targetRadius);
+      console.log('distance ' + distance);
+      setCurrentDistance(distance);
+      if (distance <= targetRadius) {
+        if (!reached) {
+          sendNotification();
+          setReached(true);
+        }
+      } else {
+        setReached(false);
       }
-    } else {
-      reached = false;
     }
   };
 
@@ -199,18 +215,125 @@ const App = () => {
   };
 
   return (
-    <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-      <Text style={styles.submittedDataText}>Latitude: {TARGET_LATITUDE}</Text>
-      <Text style={styles.submittedDataText}>Latitude: {TARGET_LONGITUDE}</Text>
-      <Text style={styles.submittedDataText}>Radius: {RADIUS_METERS}</Text>
-      <Text style={styles.highlightedPhoneText}>
-        Current Radius: {currentDistance}
-      </Text>
+    <View style={styles.container}>
+      <View style={styles.card}>
+        <TextInput
+          style={styles.input}
+          value={latField}
+          onChangeText={setLatField}
+          placeholder="Enter your latitude"
+          placeholderTextColor="#A1A1A1"
+          keyboardType="numeric"
+        />
+
+        <TextInput
+          style={styles.input}
+          value={longField}
+          onChangeText={setLongField}
+          placeholder="Enter your longitude"
+          placeholderTextColor="#A1A1A1"
+          keyboardType="numeric"
+        />
+
+        <TextInput
+          style={styles.input}
+          value={radiusField}
+          onChangeText={setRadiusField}
+          placeholder="Enter your Radius"
+          placeholderTextColor="#A1A1A1"
+          keyboardType="numeric"
+        />
+
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => {
+            setTargetLatitude(latField);
+            setTargetLongitude(longField);
+            setTargetRadius(radiusField);
+          }}>
+          <Text style={styles.buttonText}>Submit</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.submittedDataContainer}>
+        <Text style={styles.submittedDataText}>Latitude: {targetLatitude}</Text>
+        <Text style={styles.submittedDataText}>
+          Latitude: {targetLongitude}
+        </Text>
+        <Text style={styles.submittedDataText}>Radius: {targetRadius}</Text>
+        <Text style={styles.highlightedPhoneText}>
+          Current Radius: {currentDistance}
+        </Text>
+      </View>
+
+      {/* <Text>READING LOCATION...</Text>
+        <Text>CURRENT DISTANCE FROM DESTINATION</Text>
+        <Text>{currentDistance}</Text> */}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#E8F6F3', // Soft teal background
+    padding: 20,
+  },
+  title: {
+    fontSize: 28, // Larger title size
+    fontWeight: 'bold',
+    marginBottom: 30,
+    color: '#2E4A7D', // Dark navy for the title
+  },
+  card: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: '#FFFFFF', // White background for the card
+    borderRadius: 20,
+    padding: 25,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 5,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5, // For Android
+    marginBottom: 20,
+  },
+  input: {
+    height: 50,
+    borderColor: '#2E4A7D', // Dark navy border
+    borderWidth: 2,
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    marginBottom: 20,
+    fontSize: 18, // Larger input font size
+    backgroundColor: '#F0F0F0', // Light gray background for inputs
+    color: '#2E4A7D', // Dark navy text color for inputs
+  },
+  button: {
+    height: 50,
+    backgroundColor: '#FF4C4C', // Bright red button
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
+    shadowColor: '#FF4C4C', // Shadow color to match button
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 3, // For Android
+  },
+  buttonText: {
+    color: '#FFFFFF', // White text for button
+    fontSize: 20, // Larger button text size
+    fontWeight: 'bold',
+  },
   submittedDataContainer: {
     width: '100%',
     maxWidth: 400,
