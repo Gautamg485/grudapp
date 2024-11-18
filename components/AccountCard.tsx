@@ -4,41 +4,39 @@ import { View, Text, StyleSheet } from 'react-native';
 const AccountCard = ({ data }) => {
   return (
     <View style={styles.card}>
-      <Text style={styles.cardNumber}>*** {data.accNo}</Text>
-      <Text style={styles.cardHolderName}>{data.bankName}</Text>
+      <View style={styles.cardContent}>
+        <Text style={styles.cardTitle}>{data.bankName}</Text>
+        <Text style={styles.cardNumber}>**** {data.accNo}</Text>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#fff',
     padding: 20,
     borderRadius: 10,
-    margin: 10,
-    width: '90%',
-    alignSelf: 'center',
-    elevation: 5, // For Android shadow
+    marginBottom: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+    elevation:  
+ 5,
   },
-  cardNumber: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  cardHolderName: {
-    fontSize: 16,
-    marginBottom: 10,
-  },
-  cardDetails: {
-    flexDirection: 'row',
+  cardContent: {
+    flexDirection:  
+ 'row',
     justifyContent: 'space-between',
   },
-  cardDetail: {
-    fontSize: 14,
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  cardNumber: {
+    fontSize: 16,
     color: '#888',
   },
 });

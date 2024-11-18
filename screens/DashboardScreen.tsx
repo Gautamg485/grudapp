@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {FlatList, View, ScrollView, Text, PermissionsAndroid, Button} from 'react-native';
+import {FlatList, View, ScrollView, StyleSheet, Text, PermissionsAndroid, Button, TouchableOpacity} from 'react-native';
 import SmsAndroid from 'react-native-get-sms-android';
 import AccountCard from '../components/AccountCard'; // Import the Card component
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -105,8 +105,8 @@ const logout = async () => {
   };
 
   return (
-    <View>
-        <Text>Welcome {userData ? userData.name : "User"}</Text>
+    <View style={styles.container}>
+      <Text style={styles.welcomeText}>Welcome, {userData.name}!</Text>
       <View>
         {smsData ?
         <FlatList
@@ -115,10 +115,69 @@ const logout = async () => {
             keyExtractor={(item) => item}
           /> : <Text>Fetching Data ...</Text>}
       </View>
-            <Button title="Logout" onPress={logout} />
-
+      <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+        <Text style={styles.logoutButtonText}>Logout</Text>
+      </TouchableOpacity>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flexGrow: 1,
+    padding: 16,
+    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  logoutButton: {
+    backgroundColor: '#ff5722',
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  logoutButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  welcomeText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  cardContainer: {
+    marginTop: 20,
+  },
+  card: {
+    backgroundColor: '#fff',
+    padding: 16,
+    marginBottom: 12,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  cardDetails: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 6,
+  },
+  noAccountsText: {
+    fontSize: 16,
+    color: '#888',
+    textAlign: 'center',
+  },
+});
 
 export default DashboardScreen;

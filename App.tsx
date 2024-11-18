@@ -13,8 +13,8 @@ const handleBiometricAuthentication = async () => {
       const rnBiometrics = new ReactNativeBiometrics();
 
       const result = await rnBiometrics.createSignature({
-        promptMessage: 'Please Authenticate to Gowtham App',
-        payload: 'your_payload_data', // Replace with your desired payload
+        promptMessage: 'Authenticate',
+        payload: 'testapp', // Replace with your desired payload
       });
 
       if (result.success) {
@@ -25,7 +25,7 @@ const handleBiometricAuthentication = async () => {
       console.error('Biometric authentication failed:', error);
     }
   };
-  // Simulate checking authentication (e.g., token verification)
+
   useEffect(() => {
      const checkLoginStatus = async () => {
       const token = await AsyncStorage.getItem('userToken');

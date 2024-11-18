@@ -6,7 +6,7 @@ const Stack = createNativeStackNavigator();
 
 const AppStack = ({setIsAuthenticated}) => {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator screenOptions={{headerShown: false}}>
       <Stack.Screen name="Dashboard">
         {props => (
           <DashboardScreen {...props} setIsAuthenticated={setIsAuthenticated} />
