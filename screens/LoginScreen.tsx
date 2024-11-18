@@ -5,11 +5,12 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Alert,
+//   Alert,
   Image,
 } from 'react-native';
 import {PermissionsAndroid} from 'react-native';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Reducer to manage form state
 const formReducer = (state: any, action: {type: any; payload: any}) => {
@@ -25,7 +26,7 @@ const formReducer = (state: any, action: {type: any; payload: any}) => {
   }
 };
 
-const LoginScreen = ({navigation, setIsAuthenticated}) => {
+const LoginScreen = ({setIsAuthenticated}) => {
   const [user, setUser] = useState(null);
   const [state, dispatch] = useReducer(formReducer, {
     username: '',
@@ -44,12 +45,12 @@ const LoginScreen = ({navigation, setIsAuthenticated}) => {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      Alert.alert('Success', 'Login Successful!');
-      if (state.username === 'user' && state.password === 'password') {
-        navigation.navigate('Dashboard');
-      } else {
-        // Handle incorrect credentials
-      }
+//       Alert.alert('Success', 'Login Successful!');
+//       if (state.username === 'user' && state.password === 'password') {
+        signInProcess(state.username);
+//       } else {
+//         // Handle incorrect credentials
+//       }
     }, 1500);
   };
 
@@ -63,13 +64,19 @@ const LoginScreen = ({navigation, setIsAuthenticated}) => {
     });
   }, []);
 
+  const signInProcess = async (name) => {
+//       console.log("namename "+name)
+    await AsyncStorage.setItem('userToken', "dummy-token-123");  // Save token to AsyncStorage
+    await AsyncStorage.setItem('username', name ? name : "test");  // Save token to AsyncStorage
+     setIsAuthenticated(true);
+//          navigation.replace('Dashboard');  // Replace current screen with Login
+
+      }
   const signIn = async () => {
     try {
       const user: any = await GoogleSignin.signIn();
-      console.warn('useruser ' + JSON.stringify(user.data.user.givenName));
       setUser(user.data.user.givenName);
-      setIsAuthenticated(true);
-      navigation.navigate('Dashboard');
+      signInProcess(user.data.user.givenName);
     } catch (error) {
       console.error(error);
     }
