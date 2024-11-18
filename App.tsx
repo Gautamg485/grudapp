@@ -1,26 +1,32 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react-native/no-inline-styles */
 import React, {useEffect, useState} from 'react';
 import {
   PermissionsAndroid,
   Platform,
-  // AppState,
   Text,
   View,
-  StyleSheet,
+  AppRegistry,
 } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
 import Sound from 'react-native-sound';
 import PushNotification from 'react-native-push-notification';
+import BackgroundFetch from 'react-native-background-fetch';
+import BackgroundTimer from 'react-native-background-timer';
 
 const App = () => {
-  const TARGET_LATITUDE = 12.936119; // Replace with your target latitude
-  const TARGET_LONGITUDE = 80.1793316; // Replace with your target longitude
-  const RADIUS_METERS = 14;
-
-  // const [appState, setAppState] = useState(AppState.currentState);
+  const TARGET_LATITUDE = 13.0457258;
+  const TARGET_LONGITUDE = 80.257855;
+  const RADIUS_METERS = 300;
   const [currentDistance, setCurrentDistance] = useState(0);
-  let reached = false;
 
-  const requestNotificationPermissions = async () => {
+  const initLocationApp = async () => {
+    await requestPermissions();
+    await callBackgroundFetch();
+    // await callBackgroundTimer();
+  };
+
+  const requestPermissions = async () => {
     await PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
       {
@@ -31,8 +37,7 @@ const App = () => {
         buttonPositive: 'OK',
       },
     );
-  };
-  const requestPermissions = async () => {
+
     if (Platform.OS === 'android') {
       await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
@@ -55,54 +60,63 @@ const App = () => {
         },
       );
     }
+
+    PushNotification.configure({
+      onNotification: function (notification: any) {
+        console.log('Notification:', notification);
+      },
+      requestPermissions: Platform.OS === 'ios',
+    });
   };
 
-  useEffect(() => {
-    requestNotificationPermissions();
-  }, []);
+  const sendNotification = async (radius = '', latitude = 0, longitude = 0) => {
+    PushNotification.getChannels(function (channel_ids: any) {
+      console.log('CH IDS - ' + channel_ids); // ['channel_id_1']
+      if (channel_ids.length === 0) {
+        PushNotification.createChannel(
+          {
+            channelId: 'your-channel-id', // (required)
+            channelName: 'My channel', // (required)
+            channelDescription: 'A channel to categorise your notifications', // (optional) default: undefined.
+            playSound: false, // (optional) default: true
+            soundName: 'default', // (optional) See `soundName` parameter of `localNotification` function
+            vibrate: true, // (optional) default: true. Creates the default vibration pattern if true.
+          },
+          (created: any) => console.log(`createChannel returned '${created}'`), // (optional) callback returns whether the channel was created, false means it already existed.
+        );
+      }
+    });
 
-  useEffect(() => {
-    requestPermissions();
-    configurePushNotifications();
-    // AppState.addEventListener('change', handleAppStateChange);
+    try {
+      PushNotification.localNotification({
+        channelId: 'your-channel-id', // (required)
+        title: "You've arrived!",
+        message:
+          'You are within 5 meters of your target location. Current Radius - ' +
+          radius +
+          ' lat- ' +
+          latitude +
+          ' long- ' +
+          longitude,
+        playSound: true, // (optional)
+        sound: 'default', // (optional)
+      });
+    } catch (error) {
+      console.log(error);
+    }
 
-    // if (!reached) {
-    startTracking();
-    // }
-
-    // return () => {
-    //   stopTracking();
-    // };
-  }, []);
-
-  // const handleAppStateChange = (nextAppState: string) => {
-  //   console.log('nextAppStatenextAppState ' + nextAppState);
-  //   setAppState(nextAppState);
-  // };
-
-  const startTracking = () => {
-    console.log('startTrackingstartTracking');
-    Geolocation.watchPosition(
-      position => {
-        console.log('TRACKING');
-        const {latitude, longitude} = position.coords;
-        checkProximity(latitude, longitude);
-      },
-      error => {
-        console.log('Location error:', error);
-      },
-      {
-        enableHighAccuracy: true,
-        distanceFilter: 0, // Update every meter
-        // interval: 100, // Update every 5 seconds
-        // fastestInterval: 1000,
-        showsBackgroundLocationIndicator: true,
-      },
-    );
-  };
-
-  const stopTracking = () => {
-    // Geolocation.clearWatch();
+    const alarm = new Sound('alarm_sound.mp3', Sound.MAIN_BUNDLE, error => {
+      if (!error) {
+        alarm.play(success => {
+          if (!success) {
+            console.warn('Alarm playback failed');
+          }
+          alarm.release();
+        });
+      } else {
+        console.log(error);
+      }
+    });
   };
 
   const checkProximity = (latitude: number, longitude: number) => {
@@ -117,21 +131,95 @@ const App = () => {
     setCurrentDistance(distance);
     if (distance <= RADIUS_METERS) {
       if (!reached) {
-        sendNotification();
+        sendNotification(distance, latitude, longitude);
         reached = true;
       }
     } else {
       reached = false;
     }
+
+    return distance;
   };
 
-  const configurePushNotifications = () => {
-    PushNotification.configure({
-      onNotification: function (notification: any) {
-        console.log('Notification:', notification);
-      },
-      requestPermissions: Platform.OS === 'ios',
-    });
+  const callBackgroundFetch = async () => {
+    console.log('BackgroundFetch Task Init');
+    try {
+      BackgroundFetch.configure(
+        {
+          minimumFetchInterval: 1, // Minimum   time between fetches in minutes
+          stopOnTerminate: false, // Continue fetching when the app is terminated
+          startOnBoot: true, // Start fetching when the device boots up
+          enableHeadless: true, // Enable headless mode for background tasks
+        },
+        async taskId => {
+          console.log('BackgroundFetch Task Started', taskId);
+
+          try {
+            Geolocation.getCurrentPosition(
+              position => {
+                console.log('BackgroundFetch Position - ' + position);
+                const {latitude, longitude} = position.coords;
+                let distance: any = checkProximity(latitude, longitude);
+                sendNotification(distance, latitude, longitude);
+              },
+              error => {
+                console.error(error);
+              },
+              {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 10000,
+                forceRequestLocation: true,
+                forceLocationManager: true,
+                showLocationDialog: true,
+              },
+            );
+          } catch (error) {
+            console.error(error);
+          }
+          // Finish the task
+          BackgroundFetch.finish(taskId);
+        },
+        async taskId => {
+          // Timeout callback
+          console.log('BackgroundFetch Task Timeout', taskId);
+
+          // Quickly finish the task
+          BackgroundFetch.finish(taskId);
+        },
+      );
+    } catch (error) {
+      console.error('Error configuring BackgroundFetch:', error);
+      // Consider logging to a remote service or using a logging library
+    }
+  };
+
+  const callBackgroundTimer = async () => {
+    console.log('BackgroundTimer Task Start');
+    BackgroundTimer.runBackgroundTimer(() => {
+      // Your background task code here
+      Geolocation.getCurrentPosition(
+        position => {
+          console.log('POSITION - ' + position);
+          const {latitude, longitude} = position.coords;
+          let distance: any = checkProximity(latitude, longitude);
+          sendNotification(distance, latitude, longitude);
+        },
+        error => {
+          console.error(error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 10000,
+          forceRequestLocation: true,
+          forceLocationManager: true,
+          showLocationDialog: true,
+        },
+      );
+    }, 2000); // 2000 milliseconds = 2 seconds
+
+    // return () => BackgroundTimer.clearTimeout(backgroundTask);
   };
 
   const calculateDistance = (
@@ -154,89 +242,48 @@ const App = () => {
     return R * c; // Distance in meters
   };
 
-  const sendNotification = async () => {
-    PushNotification.getChannels(function (channel_ids: any) {
-      console.log(channel_ids); // ['channel_id_1']
-      if (channel_ids.length === 0) {
-        PushNotification.createChannel(
-          {
-            channelId: 'your-channel-id', // (required)
-            channelName: 'My channel', // (required)
-            channelDescription: 'A channel to categorise your notifications', // (optional) default: undefined.
-            playSound: false, // (optional) default: true
-            soundName: 'default', // (optional) See `soundName` parameter of `localNotification` function
-            vibrate: true, // (optional) default: true. Creates the default vibration pattern if true.
-          },
-          (created: any) => console.log(`createChannel returned '${created}'`), // (optional) callback returns whether the channel was created, false means it already existed.
-        );
-      }
-    });
-
-    try {
-      PushNotification.localNotification({
-        channelId: 'your-channel-id', // (required)
-        title: "You've arrived!",
-        message: 'You are within 5 meters of your target location.',
-        playSound: true, // (optional)
-        sound: 'default', // (optional)
-      });
-    } catch (error) {
-      console.log(error);
-    }
-
-    const alarm = new Sound('alarm_sound.mp3', Sound.MAIN_BUNDLE, error => {
-      if (!error) {
-        alarm.play(success => {
-          if (!success) {
-            console.warn('Alarm playback failed');
-          }
-          alarm.release();
-        });
-      } else {
-        console.log(error);
-      }
-    });
-  };
+  useEffect(() => {
+    initLocationApp();
+  }, []);
 
   return (
     <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-      <Text style={styles.submittedDataText}>Latitude: {TARGET_LATITUDE}</Text>
-      <Text style={styles.submittedDataText}>Latitude: {TARGET_LONGITUDE}</Text>
-      <Text style={styles.submittedDataText}>Radius: {RADIUS_METERS}</Text>
-      <Text style={styles.highlightedPhoneText}>
+      <Text
+        style={{
+          fontSize: 18,
+          color: '#2E4A7D',
+          marginBottom: 5,
+        }}>
+        Latitude: {TARGET_LATITUDE}
+      </Text>
+      <Text
+        style={{
+          fontSize: 18,
+          color: '#2E4A7D',
+          marginBottom: 5,
+        }}>
+        Latitude: {TARGET_LONGITUDE}
+      </Text>
+      <Text
+        style={{
+          fontSize: 18,
+          color: '#2E4A7D',
+          marginBottom: 5,
+        }}>
+        Radius: {RADIUS_METERS}
+      </Text>
+      <Text
+        style={{
+          fontSize: 18,
+          color: '#FF4C4C',
+          fontWeight: 'bold',
+        }}>
         Current Radius: {currentDistance}
       </Text>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  submittedDataContainer: {
-    width: '100%',
-    maxWidth: 400,
-    backgroundColor: '#FFFFFF', // White background for the card
-    borderRadius: 20,
-    padding: 25,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 5,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5, // For Android
-    marginBottom: 20,
-  },
-  submittedDataText: {
-    fontSize: 18, // Larger font size for submitted data
-    color: '#2E4A7D', // Dark navy color for text
-    marginBottom: 5,
-  },
-  highlightedPhoneText: {
-    fontSize: 18,
-    color: '#FF4C4C', // Bright red to highlight the phone number
-    fontWeight: 'bold', // Bold font for emphasis
-  },
-});
-
+AppRegistry.registerComponent('MyApp', () => App);
+AppRegistry.registerHeadlessTask('RNBackgroundFetch', () => BackgroundFetch);
 export default App;
