@@ -8,3 +8,7 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # Add any project specific keep options here:
+
+# React Native Biometrics Proguard Rules
+-keep class com.biometric.biometrics.** { *; }
+-dontwarn com.biometric.biometrics.**
