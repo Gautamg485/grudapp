@@ -12,7 +12,7 @@ import AccountCard from '../components/AccountCard'; // Import the Card componen
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {getAccountInfo} from '../utils/smsparser';
 
-const DashboardScreen: React.FC = ({setIsAuthenticated}) => {
+const DashboardScreen: React.FC = ({setIsAuthenticated, navigation}) => {
   const [userData, setUserData] = useState(false);
   const [smsData, setSmsData] = useState(false);
 
@@ -210,7 +210,11 @@ const DashboardScreen: React.FC = ({setIsAuthenticated}) => {
           <FlatList
             data={smsData}
             renderItem={({item}) => (
-              <AccountCard key={item.number} data={item} />
+              <AccountCard
+                key={item.number}
+                data={item}
+                navigation={navigation}
+              />
             )}
             keyExtractor={item => item.number}
           />

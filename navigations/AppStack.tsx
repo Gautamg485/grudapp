@@ -1,6 +1,7 @@
 import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import DashboardScreen from '../screens/DashboardScreen';
+import AccountDetailsScreen from '../screens/AccountDetailsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -11,6 +12,9 @@ const AppStack = ({setIsAuthenticated}) => {
         {props => (
           <DashboardScreen {...props} setIsAuthenticated={setIsAuthenticated} />
         )}
+      </Stack.Screen>
+      <Stack.Screen name="AccountDetails">
+        {props => <AccountDetailsScreen {...props} />}
       </Stack.Screen>
     </Stack.Navigator>
   );

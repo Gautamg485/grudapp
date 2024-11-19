@@ -1,18 +1,38 @@
 import React from 'react';
-import {View, Text, StyleSheet} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 
-const AccountCard = ({data}) => {
+const AccountCard = ({data, navigation}) => {
   return (
     <View style={styles.card} key={data.number}>
       <View style={styles.cardContent}>
-        <Text style={styles.cardTitle}>{data.bankName}</Text>
-        <Text style={styles.cardNumber}>{data.accNo}</Text>
+        <Text style={styles.cardTitle}>
+          {data.bankName}-{data.accNo}
+        </Text>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => {
+            navigation.replace('AccountDetails');
+          }}>
+          <Text style={styles.buttonText}>View Details</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  button: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 15,
+    paddingHorizontal: 25,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
   card: {
     backgroundColor: '#fff',
     padding: 20,
