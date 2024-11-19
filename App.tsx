@@ -8,7 +8,7 @@ import ReactNativeBiometrics from 'react-native-biometrics';
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-const handleBiometricAuthentication = async () => {
+  const handleBiometricAuthentication = async () => {
     try {
       const rnBiometrics = new ReactNativeBiometrics();
 
@@ -22,37 +22,40 @@ const handleBiometricAuthentication = async () => {
         return result.signature;
       }
     } catch (error) {
-      console.error('Biometric authentication failed:', error);
+      console.log('Biometric authentication failed:', error);
     }
   };
 
   useEffect(() => {
-     const checkLoginStatus = async () => {
+    const checkLoginStatus = async () => {
       const token = await AsyncStorage.getItem('userToken');
       if (token !== null) {
-        setIsAuthenticated(true);  // User is logged in
+        setIsAuthenticated(true); // User is logged in
       } else {
-        setIsAuthenticated(false);  // User is not logged in
+        setIsAuthenticated(false); // User is not logged in
       }
     };
 
     checkLoginStatus();
   }, []);
 
-   useEffect(() => {
-     const checkLoginStatus = async () => {
-         if (isAuthenticated){
-             const bioMetricSignature = await AsyncStorage.getItem('bioMetricSignature');
-             const signature = await handleBiometricAuthentication();
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      if (isAuthenticated) {
+        const bioMetricSignature = await AsyncStorage.getItem(
+          'bioMetricSignature',
+        );
+        const signature = await handleBiometricAuthentication();
 
-             let bioMetricSignatureStatus = true;
-             if (bioMetricSignature!==null) {
-                 if (signature !== bioMetricSignature)
-                    setIsAuthenticated(false);
-             } else {
-                await AsyncStorage.setItem('bioMetricSignature', signature);
-             }
+        let bioMetricSignatureStatus = true;
+        if (bioMetricSignature !== null) {
+          if (signature !== bioMetricSignature) {
+            setIsAuthenticated(false);
+          }
+        } else {
+          await AsyncStorage.setItem('bioMetricSignature', signature);
         }
+      }
     };
 
     checkLoginStatus();
