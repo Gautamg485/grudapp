@@ -6745,6 +6745,11 @@ react-native-camera@^4.2.1, react-native-camera@>=1.0.2:
   dependencies:
     prop-types "^15.6.2"
 
+react-native-fbsdk-next@^13.1.4:
+  version "13.1.4"
+  resolved "https://registry.npmjs.org/react-native-fbsdk-next/-/react-native-fbsdk-next-13.1.4.tgz"
+  integrity sha512-cdCGxlvdXnGU9tG2QcriTULRKCSa83mLSHFQIlt+hG493ErMbY+QiRy0ipYTDsVC0/Xp6B9H+PAS9JZYq+B+nw==
+
 react-native-get-sms-android@^2.1.0:
   version "2.1.0"
   resolved "https://registry.npmjs.org/react-native-get-sms-android/-/react-native-get-sms-android-2.1.0.tgz"
@@ -6791,7 +6796,7 @@ react-native-svg@*:
     css-tree "^1.1.3"
     warn-once "0.1.1"
 
-react-native@*, "react-native@^0.0.0-0 || >=0.60 <1.0", "react-native@^0.0.0-0 || >=0.65 <1.0", react-native@>=0.60.0, react-native@>=0.70.0, react-native@0.75.4:
+react-native@*, "react-native@^0.0.0-0 || >=0.60 <1.0", "react-native@^0.0.0-0 || >=0.65 <1.0", react-native@>=0.60.0, react-native@>=0.63.3, react-native@>=0.70.0, react-native@0.75.4:
   version "0.75.4"
   resolved "https://registry.npmjs.org/react-native/-/react-native-0.75.4.tgz"
   integrity sha512-Jehg4AMNIAXu9cn0/1jbTCoNg3tc+t6EekwucCalN8YoRmxGd/PY6osQTI/5fSAM40JQ4O8uv8Qg09Ycpb5sxQ==

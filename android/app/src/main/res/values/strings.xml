@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">grudapp</string>
+    <string name="facebook_app_id">1075600927398522</string>
+    <string name="facebook_client_token">43517b99a0bd50d53e7b11a0720d3760</string>
 </resources>

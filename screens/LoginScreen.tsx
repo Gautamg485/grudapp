@@ -11,6 +11,7 @@ import {
 import {PermissionsAndroid} from 'react-native';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {AccessToken, LoginManager} from 'react-native-fbsdk-next';
 
 // Reducer to manage form state
 const formReducer = (state: any, action: {type: any; payload: any}) => {
@@ -71,7 +72,7 @@ const LoginScreen = ({setIsAuthenticated}) => {
     setIsAuthenticated(true);
     //          navigation.replace('Dashboard');  // Replace current screen with Login
   };
-  const signIn = async () => {
+  const handleGoogleLogin = async () => {
     try {
       const user: any = await GoogleSignin.signIn();
       console.log('useruser ' + JSON.stringify(user));
@@ -100,6 +101,64 @@ const LoginScreen = ({setIsAuthenticated}) => {
       return false;
     }
   }
+
+  const handleFacebookLogin = () => {
+    LoginManager.logInWithPermissions(['public_profile', 'email'])
+      .then(result => {
+        if (result.isCancelled) {
+          console.log('Login cancelled');
+        } else {
+          console.log(
+            'Login success with permissions: ' +
+              result.grantedPermissions.toString(),
+          );
+          // Get Access Token after successful login
+          AccessToken.getCurrentAccessToken()
+            .then(data => {
+              console.log('Access Token:', data.accessToken.toString());
+              // You can send the access token to your server to verify login
+              fetchUserData(data.accessToken);
+            })
+            .catch(error => {
+              console.error('Error getting access token:', error);
+            });
+        }
+      })
+      .catch(error => {
+        console.error('Login failed with error:', error);
+      });
+  };
+
+  // Fetch user data from Facebook using the Access Token
+  const fetchUserData = accessToken => {
+    const {
+      GraphRequest,
+      GraphRequestManager,
+    } = require('react-native-fbsdk-next');
+    const infoRequest = new GraphRequest(
+      '/me',
+      {
+        accessToken: accessToken.toString(),
+        parameters: {
+          fields: {
+            string: 'id,name,email', // Fields to fetch from Facebook
+          },
+        },
+      },
+      (error, result) => {
+        if (error) {
+          console.log('Error fetching user data:', error);
+        } else {
+          console.log('User Data:', result);
+          setUser(result.name);
+          signInProcess(result.name);
+        }
+      },
+    );
+
+    // Start the request to fetch user data
+    new GraphRequestManager().addRequest(infoRequest).start();
+  };
 
   return (
     <View style={styles.container}>
@@ -137,15 +196,16 @@ const LoginScreen = ({setIsAuthenticated}) => {
       </TouchableOpacity>
 
       {/* Custom Google Sign-In Button */}
-      <TouchableOpacity style={styles.googleButton} onPress={signIn}>
+      <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin}>
         <View style={styles.googleButtonContent}>
-          <Image
-            source={{
-              uri: 'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg',
-            }}
-            style={styles.googleIcon}
-          />
           <Text style={styles.googleButtonText}>Sign in with Google</Text>
+        </View>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.facebookButton}
+        onPress={handleFacebookLogin}>
+        <View style={styles.googleButtonContent}>
+          <Text style={styles.googleButtonText}>Sign in with Facebook</Text>
         </View>
       </TouchableOpacity>
     </View>
@@ -165,6 +225,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 40,
     color: '#333',
+  },
+  facebookButton: {
+    backgroundColor: '#3b5998', // Facebook blue
+    width: '100%',
+    height: 50,
+    marginTop: 20,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+    borderColor: '#ddd',
+    borderWidth: 1,
   },
   input: {
     width: '100%',

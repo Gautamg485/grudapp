@@ -19,6 +19,7 @@
     "react-native": "0.75.4",
     "react-native-biometrics": "^3.0.1",
     "react-native-camera": "^4.2.1",
+    "react-native-fbsdk-next": "^13.1.4",
     "react-native-get-sms-android": "^2.1.0",
     "react-native-permissions": "^5.0.1",
     "react-native-qrcode-scanner": "^1.5.5",
