@@ -5,7 +5,7 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-//   Alert,
+  //   Alert,
   Image,
 } from 'react-native';
 import {PermissionsAndroid} from 'react-native';
@@ -45,12 +45,12 @@ const LoginScreen = ({setIsAuthenticated}) => {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-//       Alert.alert('Success', 'Login Successful!');
-//       if (state.username === 'user' && state.password === 'password') {
-        signInProcess(state.username);
-//       } else {
-//         // Handle incorrect credentials
-//       }
+      //       Alert.alert('Success', 'Login Successful!');
+      //       if (state.username === 'user' && state.password === 'password') {
+      signInProcess(state.username);
+      //       } else {
+      //         // Handle incorrect credentials
+      //       }
     }, 1500);
   };
 
@@ -64,17 +64,17 @@ const LoginScreen = ({setIsAuthenticated}) => {
     });
   }, []);
 
-  const signInProcess = async (name) => {
-//       console.log("namename "+name)
-    await AsyncStorage.setItem('userToken', "dummy-token-123");  // Save token to AsyncStorage
-    await AsyncStorage.setItem('username', name ? name : "test");  // Save token to AsyncStorage
-     setIsAuthenticated(true);
-//          navigation.replace('Dashboard');  // Replace current screen with Login
-
-      }
+  const signInProcess = async name => {
+    //       console.log("namename "+name)
+    await AsyncStorage.setItem('userToken', 'dummy-token-123'); // Save token to AsyncStorage
+    await AsyncStorage.setItem('username', name ? name : 'test'); // Save token to AsyncStorage
+    setIsAuthenticated(true);
+    //          navigation.replace('Dashboard');  // Replace current screen with Login
+  };
   const signIn = async () => {
     try {
       const user: any = await GoogleSignin.signIn();
+      console.log('useruser ' + JSON.stringify(user));
       setUser(user.data.user.givenName);
       signInProcess(user.data.user.givenName);
     } catch (error) {

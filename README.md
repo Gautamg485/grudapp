@@ -80,4 +80,8 @@ To learn more about React Native, take a look at the following resources:
 
 old sha1
 
+DEBUG KEY -
 5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25
+
+RELEASE KEY -
+68:71:A1:4E:35:7A:E4:24:C8:25:E2:79:A9:E5:DA:BB:A7:C7:0C:AE

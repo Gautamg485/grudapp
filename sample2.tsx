@@ -1,0 +1,90 @@
+import React, {useState, useEffect} from 'react';
+import {NavigationContainer} from '@react-navigation/native';
+import AuthStack from './navigations/AuthStack';
+import AppStack from './navigations/AppStack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import ReactNativeBiometrics from 'react-native-biometrics';
+
+const App = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const handleBiometricAuthentication = async () => {
+    try {
+      const rnBiometrics = new ReactNativeBiometrics();
+      const bioMetricPublicKey = await AsyncStorage.getItem(
+        'bioMetricPublicKey',
+      );
+
+      if (bioMetricPublicKey === null) {
+        const publicKey = await rnBiometrics.createKeys().then(resultObject => {
+          const {publicKey} = resultObject;
+          console.log(publicKey);
+          return publicKey;
+        });
+        await AsyncStorage.setItem('bioMetricPublicKey', publicKey);
+      }
+
+      const result = await rnBiometrics.createSignature({
+        promptMessage: 'Authenticate',
+        payload: 'testapp', // Replace with your desired payload
+      });
+
+      if (result.success) {
+        console.log('Signature:', result.signature);
+        return result.signature;
+      } else {
+        console.log('Signature result:', JSON.stringify(result));
+      }
+    } catch (error) {
+      console.log('Biometric authentication failed:', error);
+    }
+  };
+
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      const token = await AsyncStorage.getItem('userToken');
+      if (token !== null) {
+        setIsAuthenticated(true); // User is logged in
+      } else {
+        setIsAuthenticated(false); // User is not logged in
+      }
+    };
+
+    checkLoginStatus();
+  }, []);
+
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      if (isAuthenticated) {
+        const bioMetricSignature = await AsyncStorage.getItem(
+          'bioMetricSignature',
+        );
+        const signature = await handleBiometricAuthentication();
+        console.log('bioMetricSignature ' + bioMetricSignature);
+        console.log('signaturesignature ' + signature);
+
+        if (bioMetricSignature !== null) {
+          if (signature !== bioMetricSignature) {
+            setIsAuthenticated(false);
+          }
+        } else {
+          await AsyncStorage.setItem('bioMetricSignature', signature);
+        }
+      }
+    };
+
+    checkLoginStatus();
+  }, [isAuthenticated]);
+
+  return (
+    <NavigationContainer>
+      {isAuthenticated ? (
+        <AppStack setIsAuthenticated={setIsAuthenticated} />
+      ) : (
+        <AuthStack setIsAuthenticated={setIsAuthenticated} />
+      )}
+    </NavigationContainer>
+  );
+};
+
+export default App;

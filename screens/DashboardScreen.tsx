@@ -66,12 +66,12 @@ const DashboardScreen: React.FC = ({setIsAuthenticated, navigation}) => {
               //               console.log('-->' + object.date);
               //               console.log('-->' + object.body);
               const bankDetails = extractBankInfo(object.body);
-              console.log(
-                'bankDetailsbankDetails ' + JSON.stringify(bankDetails),
-              );
-              console.log(
-                'smsDetailsObjsmsDetailsObj11 ' + JSON.stringify(smsDetailsObj),
-              );
+              // console.log(
+              //   'bankDetailsbankDetails ' + JSON.stringify(bankDetails),
+              // );
+              // console.log(
+              //   'smsDetailsObjsmsDetailsObj11 ' + JSON.stringify(smsDetailsObj),
+              // );
 
               if (bankDetails != null && !smsDetailsObj[bankDetails.accNo]) {
                 smsDetailsObj[bankDetails.accNo] = bankDetails;
@@ -116,8 +116,8 @@ const DashboardScreen: React.FC = ({setIsAuthenticated, navigation}) => {
       // console.log('GGGGG 1:', JSON.stringify(result)); // Output: Axis Bank
 
       if (result.number !== null && result.number.replaceAll(' ', '') !== '') {
-        console.log('GGGGG 2:', smsContent); // Output: Axis Bank
-        console.log('GGGGG 1:', JSON.stringify(result)); // Output: Axis Bank
+        // console.log('GGGGG 2:', smsContent); // Output: Axis Bank
+        // console.log('GGGGG 1:', JSON.stringify(result)); // Output: Axis Bank
         let bankName = '';
         // Define regex to match potential bank names
         // let bankArr = ['HDFC Bank', 'ICICI Bank', 'SBI', 'Axis Bank'];
@@ -149,7 +149,7 @@ const DashboardScreen: React.FC = ({setIsAuthenticated, navigation}) => {
 
         // Return a case-insensitive global regex
         let regex = new RegExp(pattern, 'gi');
-        console.warn('regexregex ' + regex);
+        // console.warn('regexregex ' + regex);
 
         const match = smsContent.match(regex);
 
@@ -205,19 +205,30 @@ const DashboardScreen: React.FC = ({setIsAuthenticated, navigation}) => {
   return (
     <View style={styles.container}>
       <Text style={styles.welcomeText}>Welcome, {userData.name}!</Text>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => {
+          navigation.replace('QRScanner');
+        }}>
+        <Text style={styles.buttonText}>Scan QR</Text>
+      </TouchableOpacity>
       <View>
         {smsData ? (
-          <FlatList
-            data={smsData}
-            renderItem={({item}) => (
-              <AccountCard
-                key={item.number}
-                data={item}
-                navigation={navigation}
-              />
-            )}
-            keyExtractor={item => item.number}
-          />
+          <>
+            <Text style={styles.headingText}>Accounts You May Own ,</Text>
+            <FlatList
+              key={'flatlist'}
+              data={smsData}
+              renderItem={({item}) => (
+                <AccountCard
+                  key={item.number}
+                  data={item}
+                  navigation={navigation}
+                />
+              )}
+              keyExtractor={(item, index) => index.toString()} // Use index as a key (fallback)
+            />
+          </>
         ) : (
           <Text>Fetching Data ...</Text>
         )}
@@ -230,6 +241,19 @@ const DashboardScreen: React.FC = ({setIsAuthenticated, navigation}) => {
 };
 
 const styles = StyleSheet.create({
+  button: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 15,
+    paddingHorizontal: 25,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
   container: {
     flexGrow: 1,
     padding: 16,
@@ -245,6 +269,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ff5722',
     padding: 10,
     borderRadius: 5,
+    marginTop: 20,
     marginBottom: 20,
     alignItems: 'center',
   },
@@ -255,6 +280,13 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontSize: 22,
     fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#333',
+  },
+  headingText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 20,
     color: '#333',
   },
   cardContainer: {

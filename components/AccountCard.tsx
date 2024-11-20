@@ -5,13 +5,16 @@ const AccountCard = ({data, navigation}) => {
   return (
     <View style={styles.card} key={data.number}>
       <View style={styles.cardContent}>
-        <Text style={styles.cardTitle}>
-          {data.bankName}-{data.accNo}
-        </Text>
+        <View>
+          <Text style={styles.cardTitle}>{data.bankName}</Text>
+          <Text style={styles.cardTitle}>{data.accNo}</Text>
+        </View>
         <TouchableOpacity
           style={styles.button}
           onPress={() => {
-            navigation.replace('AccountDetails');
+            navigation.replace('AccountDetails', {
+              data: data,
+            });
           }}>
           <Text style={styles.buttonText}>View Details</Text>
         </TouchableOpacity>
@@ -24,13 +27,13 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: '#4CAF50',
     paddingVertical: 15,
-    paddingHorizontal: 25,
+    paddingHorizontal: 20,
     borderRadius: 8,
     alignItems: 'center',
   },
   buttonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: 'bold',
   },
   card: {

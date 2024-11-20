@@ -4,27 +4,10 @@ import AuthStack from './navigations/AuthStack';
 import AppStack from './navigations/AppStack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ReactNativeBiometrics from 'react-native-biometrics';
+import {Alert} from 'react-native';
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  const handleBiometricAuthentication = async () => {
-    try {
-      const rnBiometrics = new ReactNativeBiometrics();
-
-      const result = await rnBiometrics.createSignature({
-        promptMessage: 'Authenticate',
-        payload: 'testapp', // Replace with your desired payload
-      });
-
-      if (result.success) {
-        console.log('Signature:', result.signature);
-        return result.signature;
-      }
-    } catch (error) {
-      console.log('Biometric authentication failed:', error);
-    }
-  };
 
   useEffect(() => {
     const checkLoginStatus = async () => {
@@ -42,18 +25,21 @@ const App = () => {
   useEffect(() => {
     const checkLoginStatus = async () => {
       if (isAuthenticated) {
-        const bioMetricSignature = await AsyncStorage.getItem(
-          'bioMetricSignature',
-        );
-        const signature = await handleBiometricAuthentication();
+        try {
+          const rnBiometrics = new ReactNativeBiometrics();
+          const {success, error} = await rnBiometrics.simplePrompt({
+            promptMessage: 'Authenticate to continue',
+          });
 
-        let bioMetricSignatureStatus = true;
-        if (bioMetricSignature !== null) {
-          if (signature !== bioMetricSignature) {
-            setIsAuthenticated(false);
+          if (success) {
+            return true;
+          } else {
+            return false;
           }
-        } else {
-          await AsyncStorage.setItem('bioMetricSignature', signature);
+        } catch (error) {
+          console.error('[handleBiometricAuth] Error:', error);
+          Alert.alert('Error', 'Biometric authentication failed from device');
+          return false;
         }
       }
     };
