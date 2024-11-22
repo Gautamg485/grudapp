@@ -8,6 +8,8 @@ import {Alert} from 'react-native';
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isBioMetricAuthenticated, setIsBioMetricAuthenticated] =
+    useState(false);
 
   useEffect(() => {
     const checkLoginStatus = async () => {
@@ -22,35 +24,15 @@ const App = () => {
     checkLoginStatus();
   }, []);
 
-  useEffect(() => {
-    const checkLoginStatus = async () => {
-      if (isAuthenticated) {
-        try {
-          const rnBiometrics = new ReactNativeBiometrics();
-          const {success, error} = await rnBiometrics.simplePrompt({
-            promptMessage: 'Authenticate to continue',
-          });
-
-          if (success) {
-            return true;
-          } else {
-            return false;
-          }
-        } catch (error) {
-          console.error('[handleBiometricAuth] Error:', error);
-          Alert.alert('Error', 'Biometric authentication failed from device');
-          return false;
-        }
-      }
-    };
-
-    checkLoginStatus();
-  }, [isAuthenticated]);
-
   return (
     <NavigationContainer>
       {isAuthenticated ? (
-        <AppStack setIsAuthenticated={setIsAuthenticated} />
+        <AppStack
+          setIsAuthenticated={setIsAuthenticated}
+          isAuthenticated={isAuthenticated}
+          setIsBioMetricAuthenticated={setIsBioMetricAuthenticated}
+          isBioMetricAuthenticated={isBioMetricAuthenticated}
+        />
       ) : (
         <AuthStack setIsAuthenticated={setIsAuthenticated} />
       )}

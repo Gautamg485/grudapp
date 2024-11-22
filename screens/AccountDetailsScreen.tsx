@@ -1,10 +1,26 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import {View, Text, StyleSheet} from 'react-native';
 import {useBackButtonHandler} from '../components/useBackButtonController';
+import Config from 'react-native-config';
+import {callApi} from '../utils/fetcher';
 
 const AccountDetailsScreen: React.FC = ({route}) => {
   useBackButtonHandler();
   const {data} = route.params; // Extract dynamic parameters
+
+  const [details, setDetails] = useState(null);
+
+  useEffect(() => {
+    const updateData = async () => {
+      const apiUrl = Config.API_URL;
+      console.log(apiUrl);
+      const result = await callApi(apiUrl);
+
+      setDetails(result);
+    };
+
+    updateData();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -21,6 +37,7 @@ const AccountDetailsScreen: React.FC = ({route}) => {
           <Text style={styles.value}>{data.accNo}</Text>
         </View>
       </View>
+      <Text style={styles.heading}>{JSON.stringify(details)}</Text>
     </View>
   );
 };
