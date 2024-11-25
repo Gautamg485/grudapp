@@ -27,7 +27,7 @@ const formReducer = (state: any, action: {type: any; payload: any}) => {
   }
 };
 
-const LoginScreen = ({setIsAuthenticated}) => {
+const LoginScreen = ({navigation, setIsAuthenticated}) => {
   const [user, setUser] = useState(null);
   const [state, dispatch] = useReducer(formReducer, {
     username: '',
@@ -193,6 +193,14 @@ const LoginScreen = ({setIsAuthenticated}) => {
         <Text style={styles.buttonText}>
           {isLoading ? 'Logging in...' : 'Login'}
         </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.facebookButton]}
+        onPress={() => {
+          navigation.replace('Register');
+        }}>
+        <Text style={styles.buttonText}>Don't have account? Sign Up!!!</Text>
       </TouchableOpacity>
 
       {/* Custom Google Sign-In Button */}

@@ -6,11 +6,20 @@ import {
   Text,
   PermissionsAndroid,
   TouchableOpacity,
+  ScrollView,
 } from 'react-native';
 import SmsAndroid from 'react-native-get-sms-android';
 import AccountCard from '../components/AccountCard'; // Import the Card component
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {getAccountInfo} from '../utils/smsparser';
+import {
+  getAccountInfo,
+  getTransactionAmount,
+  getTransactionInfo,
+} from '../utils/smsparser';
+import {
+  extractTextBetweenToAndOn,
+  getRegexFromArray,
+} from '../utils/advanceParser';
 
 const DashboardScreen: React.FC = ({setIsAuthenticated, navigation}) => {
   const [userData, setUserData] = useState(false);
@@ -43,7 +52,7 @@ const DashboardScreen: React.FC = ({setIsAuthenticated, navigation}) => {
       if (permissionGranted) {
         const filter = {
           box: 'inbox',
-          maxCount: 100,
+          // maxCount: 100,
           // minDate: 1731974400000,
           // maxDate: 1732060800000,
           // bodyRegex: '(spent|spend|paid)', // content regex to match
@@ -73,15 +82,55 @@ const DashboardScreen: React.FC = ({setIsAuthenticated, navigation}) => {
               //   'smsDetailsObjsmsDetailsObj11 ' + JSON.stringify(smsDetailsObj),
               // );
 
-              if (bankDetails != null && !smsDetailsObj[bankDetails.accNo]) {
-                smsDetailsObj[bankDetails.accNo] = bankDetails;
-                smsDetailsList.push(bankDetails);
+              if (bankDetails != null) {
+                if (
+                  smsDetailsObj[bankDetails.accType] &&
+                  smsDetailsObj[bankDetails.accType][bankDetails.accNo]
+                ) {
+                  let updateBankDetails =
+                    smsDetailsObj[bankDetails.accType][bankDetails.accNo];
+                  let updateTransactionDetails =
+                    updateBankDetails.transactionList &&
+                    updateBankDetails.transactionList[
+                      bankDetails.transactionType
+                    ]
+                      ? updateBankDetails.transactionList[
+                          bankDetails.transactionType
+                        ]
+                      : [];
+                  if (bankDetails.rawData) {
+                    updateTransactionDetails.push(bankDetails.rawData);
+                  }
+                  updateBankDetails['transactionList'][
+                    bankDetails.transactionType
+                  ] = updateTransactionDetails;
+                  delete updateBankDetails.rawData;
+                  smsDetailsObj[bankDetails.accType][bankDetails.accNo] =
+                    updateBankDetails;
+                } else {
+                  bankDetails['transactionList'] = {};
+                  if (bankDetails && bankDetails.rawData) {
+                    bankDetails['transactionList'][
+                      bankDetails.transactionType
+                    ] = [];
+                    bankDetails['transactionList'][
+                      bankDetails.transactionType
+                    ].push(bankDetails.rawData);
+
+                    delete bankDetails.rawData;
+                  }
+                  if (!smsDetailsObj[bankDetails.accType]) {
+                    smsDetailsObj[bankDetails.accType] = {};
+                  }
+                  smsDetailsObj[bankDetails.accType][bankDetails.accNo] =
+                    bankDetails;
+                }
               }
             });
-            console.log(
-              'smsDetailsListsmsDetailsList ' + JSON.stringify(smsDetailsList),
-            );
-            setSmsData(smsDetailsList);
+            // console.log(
+            //   'smsDetailsListsmsDetailsList ' + JSON.stringify(smsDetailsObj),
+            // );
+            setSmsData(smsDetailsObj);
           },
         );
       }
@@ -97,28 +146,47 @@ const DashboardScreen: React.FC = ({setIsAuthenticated, navigation}) => {
     // if (smsContent.indexOf('Axis') !== -1) {
     //   console.warn('smsContent - ' + JSON.stringify(smsContent));
     // }
-    let smsText = smsContent.toLowerCase();
+    let smsText = smsContent.replace(/\n/g, ' ').toLowerCase();
     if (
       smsText.indexOf('suspected') !== -1 ||
       smsText.indexOf('spam') !== -1 ||
       smsText.indexOf('g00d') !== -1 ||
       smsText.indexOf('good') !== -1 ||
+      smsText.indexOf('welcome') !== -1 ||
+      smsText.indexOf('cdsl') !== -1 ||
+      smsText.indexOf('ready') !== -1 ||
+      smsText.indexOf('activate') !== -1 ||
+      smsText.indexOf('offer') !== -1 ||
       smsText.indexOf('news') !== -1 ||
+      smsText.indexOf('verify') !== -1 ||
+      smsText.indexOf('verification') !== -1 ||
+      smsText.indexOf('pay later') !== -1 ||
+      smsText.indexOf('dth') !== -1 ||
+      smsText.indexOf('digital tv') !== -1 ||
+      smsText.indexOf('loan') !== -1 ||
       smsText.indexOf('appr0ved.') !== -1
     ) {
       return null;
     } else {
-      const result = getAccountInfo(smsContent);
+      const result = getAccountInfo(smsText);
 
       // Extract specific information (bank name and account number)
       // Log the result
       // console.log('GGGGG 1:', JSON.stringify(result)); // Output: Axis Bank
       // console.log('GGGGG 1:', JSON.stringify(result)); // Output: Axis Bank
+      // if (smsText.indexOf('3761') !== -1) {
+      //   console.log('GGGGG 2:', smsText); // Output: Axis Bank
+      //   console.log('GGGGG 3:', result.number); // Output: Axis Bank
+      // }
 
-      if (result.number !== null && result.number.replaceAll(' ', '') !== '') {
-        // console.log('GGGGG 2:', smsContent); // Output: Axis Bank
+      if (
+        result.number !== null &&
+        result.number.replaceAll(' ', '').replaceAll('.', '').length >= 4
+      ) {
+        // console.log('GGGGG 2:', smsText); // Output: Axis Bank
         // console.log('GGGGG 1:', JSON.stringify(result)); // Output: Axis Bank
         let bankName = '';
+        let merchantName = '';
         // Define regex to match potential bank names
         // let bankArr = ['HDFC Bank', 'ICICI Bank', 'SBI', 'Axis Bank'];
         // let bankString = '';
@@ -139,24 +207,54 @@ const DashboardScreen: React.FC = ({setIsAuthenticated, navigation}) => {
           'Axis Bank',
           'SBI',
         ];
+        const merchantNames = ['swiggy', 'zomato', 'paytm', 'flipkart'];
 
-        const escapedNames = bankNames.map(name =>
-          name.replace(/[.*+?^=!:${}()|\[\]\/\\]/g, '\\$&'),
-        );
+        let merchantRegex = getRegexFromArray(merchantNames);
 
-        // Create the regex pattern from the bank names
-        const pattern = `\\b(${escapedNames.join('|')})\\b`;
+        const merchantMatch = smsText.match(merchantRegex);
 
-        // Return a case-insensitive global regex
-        let regex = new RegExp(pattern, 'gi');
-        // console.warn('regexregex ' + regex);
+        if (merchantMatch) {
+          merchantName = merchantMatch[0].trim();
+        }
 
-        const match = smsContent.match(regex);
+        let regex = getRegexFromArray(bankNames);
+
+        const match = smsText.match(regex);
 
         if (match) {
           bankName = match[0].trim();
         }
-        return {bankName: bankName, accNo: result.number};
+
+        let transaction = getTransactionInfo(smsText);
+        transaction['regexMerchantName'] = merchantName;
+        // if (
+        //   merchantName === '' ||
+        //   merchantName.toLowerCase() === 'to' ||
+        //   merchantName.toLowerCase() === 'on'
+        // ) {
+        transaction['advRegexMerchantName'] = extractTextBetweenToAndOn(
+          smsText.toLowerCase(),
+        );
+        // }
+
+        let typeRegex = getRegexFromArray(['sent', 'send', 'debited']);
+        const typematch = smsText.toLowerCase().match(typeRegex);
+        if (typematch) {
+          transaction['transactionType'] = 'debit';
+        } else {
+          transaction['transactionType'] = 'credit';
+        }
+
+        return {
+          bankName: bankName,
+          accNo: result.number,
+          accType:
+            transaction && transaction.account && transaction.account.type
+              ? transaction.account.type
+              : 'ACCOUNT',
+          transactionType: transaction['transactionType'],
+          rawData: transaction,
+        };
       } else {
         return null;
       }
@@ -203,7 +301,7 @@ const DashboardScreen: React.FC = ({setIsAuthenticated, navigation}) => {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <Text style={styles.welcomeText}>Welcome, {userData.name}!</Text>
       <TouchableOpacity
         style={styles.button}
@@ -212,31 +310,37 @@ const DashboardScreen: React.FC = ({setIsAuthenticated, navigation}) => {
         }}>
         <Text style={styles.buttonText}>Scan QR</Text>
       </TouchableOpacity>
-      <View>
-        {smsData ? (
-          <>
-            <Text style={styles.headingText}>Accounts You May Own ,</Text>
-            <FlatList
-              key={'flatlist'}
-              data={smsData}
-              renderItem={({item}) => (
-                <AccountCard
-                  key={item.number}
-                  data={item}
-                  navigation={navigation}
+      {/* <ScrollView> */}
+      {smsData ? (
+        <>
+          {Object.keys(smsData).map((value, key) => {
+            return (
+              <View key={key}>
+                <Text style={styles.headingText}>{value}S</Text>
+                <FlatList
+                  key={'flatlist'}
+                  data={Object.keys(smsData[value])}
+                  renderItem={({item}) => (
+                    <AccountCard
+                      key={smsData[value][item].number}
+                      data={smsData[value][item]}
+                      navigation={navigation}
+                    />
+                  )}
+                  keyExtractor={(item, index) => index.toString()} // Use index as a key (fallback)
                 />
-              )}
-              keyExtractor={(item, index) => index.toString()} // Use index as a key (fallback)
-            />
-          </>
-        ) : (
-          <Text>Fetching Data ...</Text>
-        )}
-      </View>
+              </View>
+            );
+          })}
+        </>
+      ) : (
+        <Text>Fetching Data ...</Text>
+      )}
+      {/* </ScrollView> */}
       <TouchableOpacity style={styles.logoutButton} onPress={logout}>
         <Text style={styles.logoutButtonText}>Logout</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 };
 

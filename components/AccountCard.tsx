@@ -6,8 +6,10 @@ const AccountCard = ({data, navigation}) => {
     <View style={styles.card} key={data.number}>
       <View style={styles.cardContent}>
         <View>
-          <Text style={styles.cardTitle}>{data.bankName}</Text>
-          <Text style={styles.cardTitle}>{data.accNo}</Text>
+          <Text style={styles.cardTitle}>
+            {data.bankName ? data.bankName.toUpperCase() : ''}
+          </Text>
+          <Text style={styles.cardTitle}>{`XX${data.accNo}`}</Text>
         </View>
         <TouchableOpacity
           style={styles.button}
