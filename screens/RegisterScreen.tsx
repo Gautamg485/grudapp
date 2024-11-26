@@ -64,7 +64,7 @@ const RegisterScreen = ({navigation, setIsAuthenticated}) => {
 
     setIsLoading(true);
     const result = await callApi(
-      '/api/v2/register',
+      '/api/v2/login',
       {
         name: state.username,
         email: state.emailId,
@@ -74,22 +74,21 @@ const RegisterScreen = ({navigation, setIsAuthenticated}) => {
       },
       'POST',
     );
-    console.log('resultresult ' + JSON.stringify(result));
+
     setIsLoading(false);
     if (result.statusCode === 200 && result.data === 'Successfully Created') {
-      // setTimeout(() => {
       setIsLoading(false);
-      signInProcess(state.username);
-      // }, 1500);
+      signInProcess(result);
     }
   };
 
-  const signInProcess = async (name: any) => {
-    //       console.log("namename "+name)
-    await AsyncStorage.setItem('userToken', 'dummy-token-123'); // Save token to AsyncStorage
-    await AsyncStorage.setItem('username', name ? name : 'test'); // Save token to AsyncStorage
+  const signInProcess = async (result: any) => {
+    await AsyncStorage.setItem(
+      'username',
+      result.data.name ? result.data.name : 'User',
+    );
+    await AsyncStorage.setItem('userdata', JSON.stringify(result.data));
     setIsAuthenticated(true);
-    //          navigation.replace('Dashboard');  // Replace current screen with Login
   };
 
   return (

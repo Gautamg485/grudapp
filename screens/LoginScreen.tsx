@@ -5,19 +5,17 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  //   Alert,
-  Image,
 } from 'react-native';
 import {PermissionsAndroid} from 'react-native';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {AccessToken, LoginManager} from 'react-native-fbsdk-next';
+import {callApi} from '../utils/fetcher';
 
-// Reducer to manage form state
 const formReducer = (state: any, action: {type: any; payload: any}) => {
   switch (action.type) {
-    case 'SET_USERNAME':
-      return {...state, username: action.payload};
+    case 'SET_EMAIL':
+      return {...state, emailId: action.payload};
     case 'SET_PASSWORD':
       return {...state, password: action.payload};
     case 'SET_ERROR':
@@ -30,7 +28,7 @@ const formReducer = (state: any, action: {type: any; payload: any}) => {
 const LoginScreen = ({navigation, setIsAuthenticated}) => {
   const [user, setUser] = useState(null);
   const [state, dispatch] = useReducer(formReducer, {
-    username: '',
+    emailId: '',
     password: '',
     error: '',
   });
@@ -38,46 +36,75 @@ const LoginScreen = ({navigation, setIsAuthenticated}) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = () => {
-    if (!state.username || !state.password) {
-      dispatch({type: 'SET_ERROR', payload: 'Both fields are required!'});
+    if (!state.emailId || !state.password) {
+      dispatch({type: 'SET_ERROR', payload: 'All fields are required!'});
       return;
     }
 
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    if (!emailRegex.test(state.emailId)) {
+      dispatch({type: 'SET_ERROR', payload: 'Not a valid Email!'});
+      return;
+    }
+
+    dispatch({type: 'SET_ERROR', payload: ''});
+
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      //       Alert.alert('Success', 'Login Successful!');
-      //       if (state.username === 'user' && state.password === 'password') {
-      signInProcess(state.username);
-      //       } else {
-      //         // Handle incorrect credentials
-      //       }
-    }, 1500);
+    signInProcess(
+      {
+        email: state.emailId,
+        password: state.password,
+      },
+      '',
+    );
   };
 
   useEffect(() => {
     requestSmsPermission();
     GoogleSignin.configure({
       webClientId:
-        '317914990748-2shn3bhu5htjb5cqldun7dq6bqpg0i2i.apps.googleusercontent.com', // Replace with your client ID
+        '317914990748-2shn3bhu5htjb5cqldun7dq6bqpg0i2i.apps.googleusercontent.com',
       offlineAccess: true,
       forceCodeForRefreshToken: true,
     });
   }, []);
 
-  const signInProcess = async name => {
-    //       console.log("namename "+name)
-    await AsyncStorage.setItem('userToken', 'dummy-token-123'); // Save token to AsyncStorage
-    await AsyncStorage.setItem('username', name ? name : 'test'); // Save token to AsyncStorage
-    setIsAuthenticated(true);
-    //          navigation.replace('Dashboard');  // Replace current screen with Login
+  const signInProcess = async (data: any, type: any = '') => {
+    dispatch({type: 'SET_ERROR', payload: ''});
+
+    const result = await callApi(
+      `/api/v2/${type == 'online' ? 'register' : 'login'}`,
+      data,
+      'POST',
+    );
+
+    if (type !== 'online') setIsLoading(false);
+
+    if (result && result.statusCode === 200 && result.data !== null) {
+      await AsyncStorage.setItem(
+        'username',
+        result.data.name ? result.data.name : 'User',
+      );
+      await AsyncStorage.setItem('userdata', JSON.stringify(result.data));
+      setIsAuthenticated(true);
+    } else {
+      dispatch({type: 'SET_ERROR', payload: 'Invalid Credentials'});
+    }
   };
+
   const handleGoogleLogin = async () => {
     try {
       const user: any = await GoogleSignin.signIn();
-      console.log('useruser ' + JSON.stringify(user));
-      setUser(user.data.user.givenName);
-      signInProcess(user.data.user.givenName);
+      signInProcess(
+        {
+          name: user.data.user.name,
+          email: user.data.user.email,
+          loginBy: 'google',
+          loginRawData: JSON.stringify(user),
+        },
+        'online',
+      );
     } catch (error) {
       console.error(error);
     }
@@ -149,9 +176,15 @@ const LoginScreen = ({navigation, setIsAuthenticated}) => {
         if (error) {
           console.log('Error fetching user data:', error);
         } else {
-          console.log('User Data:', result);
-          setUser(result.name);
-          signInProcess(result.name);
+          signInProcess(
+            {
+              name: result.name,
+              email: result.email,
+              loginBy: 'facebook',
+              loginRawData: JSON.stringify(result),
+            },
+            'online',
+          );
         }
       },
     );
@@ -164,16 +197,15 @@ const LoginScreen = ({navigation, setIsAuthenticated}) => {
     <View style={styles.container}>
       <Text style={styles.title}>Login</Text>
 
-      {/* Username Input */}
       <TextInput
         style={styles.input}
-        placeholder="Username"
-        value={state.username}
-        onChangeText={text => dispatch({type: 'SET_USERNAME', payload: text})}
+        placeholder="Email ID"
+        keyboardType="email-address"
+        value={state.emailId}
+        onChangeText={text => dispatch({type: 'SET_EMAIL', payload: text})}
         autoCapitalize="none"
       />
 
-      {/* Password Input */}
       <TextInput
         style={styles.input}
         placeholder="Password"
@@ -182,10 +214,8 @@ const LoginScreen = ({navigation, setIsAuthenticated}) => {
         secureTextEntry
       />
 
-      {/* Error message */}
       {state.error && <Text style={styles.error}>{state.error}</Text>}
 
-      {/* Login Button */}
       <TouchableOpacity
         style={[styles.button, isLoading && styles.buttonDisabled]}
         onPress={handleLogin}
@@ -195,15 +225,14 @@ const LoginScreen = ({navigation, setIsAuthenticated}) => {
         </Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[styles.facebookButton]}
+      <Text
+        style={styles.signupText}
         onPress={() => {
           navigation.replace('Register');
         }}>
-        <Text style={styles.buttonText}>Don't have account? Sign Up!!!</Text>
-      </TouchableOpacity>
+        Don't have account? Sign Up!!!
+      </Text>
 
-      {/* Custom Google Sign-In Button */}
       <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin}>
         <View style={styles.googleButtonContent}>
           <Text style={styles.googleButtonText}>Sign in with Google</Text>
@@ -227,6 +256,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     backgroundColor: '#f4f4f4',
+  },
+  signupText: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    textDecorationLine: 'underline',
+    marginTop: 20,
+    color: '#333',
   },
   title: {
     fontSize: 36,

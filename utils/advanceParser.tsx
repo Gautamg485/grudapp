@@ -1,4 +1,13 @@
 export const extractTextBetweenToAndOn = text => {
+  if (text.indexOf('credited') !== -1) {
+    const regex = /(?<=by\s)(.*?@[\w.-]+)/;
+
+    const match = text.match(regex);
+    if (match) {
+      console.log(match[0]);
+      return match[0];
+    }
+  }
   const regex = /to (.*?) on/;
   const nextregex = /at (.*?) on/;
   const match = text.match(regex);
@@ -24,4 +33,16 @@ export const getRegexFromArray = list => {
   // console.warn('regexregex ' + regex);
 
   return regexPattern;
+};
+
+export const getMatchedValueFromRegex = (regexArr, text) => {
+  let regex = getRegexFromArray(regexArr);
+
+  const match = text.match(regex);
+
+  if (match) {
+    return match[0].trim();
+  }
+
+  return '';
 };

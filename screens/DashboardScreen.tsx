@@ -1,6 +1,5 @@
 import React, {useEffect, useState} from 'react';
 import {
-  FlatList,
   View,
   StyleSheet,
   Text,
@@ -11,19 +10,17 @@ import {
 import SmsAndroid from 'react-native-get-sms-android';
 import AccountCard from '../components/AccountCard'; // Import the Card component
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  getAccountInfo,
-  getTransactionAmount,
-  getTransactionInfo,
-} from '../utils/smsparser';
+import {getAccountInfo, getTransactionInfo} from '../utils/smsparser';
 import {
   extractTextBetweenToAndOn,
-  getRegexFromArray,
+  getMatchedValueFromRegex,
 } from '../utils/advanceParser';
+import {getFormattedDate} from '../utils/generalUtil';
+import {callApi} from '../utils/fetcher';
 
-const DashboardScreen: React.FC = ({setIsAuthenticated, navigation}) => {
-  const [userData, setUserData] = useState(false);
-  const [smsData, setSmsData] = useState(false);
+const DashboardScreen: React.FC = ({setIsAuthenticated, navigation}: any) => {
+  const [userData, setUserData]: any = useState(false);
+  const [smsData, setSmsData]: any = useState(false);
 
   async function requestSmsPermission() {
     try {
@@ -46,41 +43,55 @@ const DashboardScreen: React.FC = ({setIsAuthenticated, navigation}) => {
 
   useEffect(() => {
     const fetchSms = async () => {
+      const asyncSmsData = await AsyncStorage.getItem('smsData');
+      if (asyncSmsData) setSmsData(JSON.parse(asyncSmsData));
+      const smsData = await callApi(
+        '/getSmsData',
+        {
+          userId: 6,
+        },
+        'POST',
+      );
+
+      let filter: any = {
+        box: 'inbox',
+      };
+
+      let smsDetailsObj: any = {};
+      let smsRegex: any = {};
+      if (smsData && smsData.data) {
+        smsRegex = {
+          scamRegex: smsData.data.scamRegex,
+          bankNameRegex: smsData.data.bankNameRegex,
+          transactionTypeRegex: smsData.data.transactionTypeRegex,
+          merchantRegex: smsData.data.merchantRegex,
+        };
+        if (smsData.data.smsData && smsData.data.smsData !== '{}') {
+          setSmsData(JSON.parse(smsData.data.smsData));
+          smsDetailsObj = JSON.parse(smsData.data.smsData);
+          filter['minDate'] = smsData.data.smsLastUpdatedAt;
+        }
+      }
+
       let username = await AsyncStorage.getItem('username');
       setUserData({name: username});
       const permissionGranted = await requestSmsPermission();
       if (permissionGranted) {
-        const filter = {
-          box: 'inbox',
-          // maxCount: 100,
-          // minDate: 1731974400000,
-          // maxDate: 1732060800000,
-          // bodyRegex: '(spent|spend|paid)', // content regex to match
-        };
-
         SmsAndroid.list(
           JSON.stringify(filter),
           (fail: any) => {
             console.log('Failed with this error: ' + fail);
           },
-          (count: any, smsList: any) => {
+          async (count: any, smsList: any) => {
             console.log('Count: ', count);
-            //             console.log('List: ', smsList);
             var arr = JSON.parse(smsList);
 
-            let smsDetailsList = [];
-            let smsDetailsObj = {};
             arr.forEach(function (object: any) {
-              //               console.log('Object: ' + object);
-              //               console.log('-->' + object.date);
-              //               console.log('-->' + object.body);
-              const bankDetails = extractBankInfo(object.body);
-              // console.log(
-              //   'bankDetailsbankDetails ' + JSON.stringify(bankDetails),
-              // );
-              // console.log(
-              //   'smsDetailsObjsmsDetailsObj11 ' + JSON.stringify(smsDetailsObj),
-              // );
+              const bankDetails: any = extractBankInfo(
+                object.body,
+                object.date,
+                smsRegex,
+              );
 
               if (bankDetails != null) {
                 if (
@@ -127,10 +138,20 @@ const DashboardScreen: React.FC = ({setIsAuthenticated, navigation}) => {
                 }
               }
             });
-            // console.log(
-            //   'smsDetailsListsmsDetailsList ' + JSON.stringify(smsDetailsObj),
-            // );
             setSmsData(smsDetailsObj);
+            await AsyncStorage.setItem(
+              'smsData',
+              JSON.stringify(smsDetailsObj),
+            );
+            // console.log('SMS DETAILS - ' + JSON.stringify(smsDetailsObj));
+            await callApi(
+              '/saveSmsData',
+              {
+                userId: 6,
+                transactionData: JSON.stringify(smsDetailsObj),
+              },
+              'POST',
+            );
           },
         );
       }
@@ -139,114 +160,43 @@ const DashboardScreen: React.FC = ({setIsAuthenticated, navigation}) => {
     fetchSms();
   }, []);
 
-  const extractBankInfo = smsContent => {
-    // Define the regular expressions for bank name and account number
-    // const bankNameRegex = /^([A-Za-z\s]+)\s*:/;
-    // const accountNumberRegex = /a\/c \*\*(\d+)/;
-    // if (smsContent.indexOf('Axis') !== -1) {
-    //   console.warn('smsContent - ' + JSON.stringify(smsContent));
-    // }
+  const extractBankInfo = (smsContent: any, date: any, smsRegex: any) => {
     let smsText = smsContent.replace(/\n/g, ' ').toLowerCase();
-    if (
-      smsText.indexOf('suspected') !== -1 ||
-      smsText.indexOf('spam') !== -1 ||
-      smsText.indexOf('g00d') !== -1 ||
-      smsText.indexOf('good') !== -1 ||
-      smsText.indexOf('welcome') !== -1 ||
-      smsText.indexOf('cdsl') !== -1 ||
-      smsText.indexOf('ready') !== -1 ||
-      smsText.indexOf('activate') !== -1 ||
-      smsText.indexOf('offer') !== -1 ||
-      smsText.indexOf('news') !== -1 ||
-      smsText.indexOf('verify') !== -1 ||
-      smsText.indexOf('verification') !== -1 ||
-      smsText.indexOf('pay later') !== -1 ||
-      smsText.indexOf('dth') !== -1 ||
-      smsText.indexOf('digital tv') !== -1 ||
-      smsText.indexOf('loan') !== -1 ||
-      smsText.indexOf('appr0ved.') !== -1
-    ) {
+    if (getMatchedValueFromRegex(smsRegex['scamRegex'], smsText) !== '') {
       return null;
     } else {
-      const result = getAccountInfo(smsText);
-
-      // Extract specific information (bank name and account number)
-      // Log the result
-      // console.log('GGGGG 1:', JSON.stringify(result)); // Output: Axis Bank
-      // console.log('GGGGG 1:', JSON.stringify(result)); // Output: Axis Bank
-      // if (smsText.indexOf('3761') !== -1) {
-      //   console.log('GGGGG 2:', smsText); // Output: Axis Bank
-      //   console.log('GGGGG 3:', result.number); // Output: Axis Bank
-      // }
+      const result: any = getAccountInfo(smsText);
 
       if (
         result.number !== null &&
         result.number.replaceAll(' ', '').replaceAll('.', '').length >= 4
       ) {
-        // console.log('GGGGG 2:', smsText); // Output: Axis Bank
-        // console.log('GGGGG 1:', JSON.stringify(result)); // Output: Axis Bank
-        let bankName = '';
-        let merchantName = '';
-        // Define regex to match potential bank names
-        // let bankArr = ['HDFC Bank', 'ICICI Bank', 'SBI', 'Axis Bank'];
-        // let bankString = '';
-        // bankArr.forEach(function (string: any) {
-        //   if (bankArr[bankArr.length - 1] === string) {
-        //     bankString += `${string}`;
-        //   } else {
-        //     bankString += `${string}|`;
-        //   }
-        //   console.warn('stringstring ' + string);
-        // });
-        // console.warn('bankStringbankString ' + bankString);
-        // const regex = `/\b(${bankString})\b/gi`;
-        const bankNames = [
-          'HDFC Bank',
-          'ICICI Bank',
-          'State Bank of India',
-          'Axis Bank',
-          'SBI',
-        ];
-        const merchantNames = ['swiggy', 'zomato', 'paytm', 'flipkart'];
-
-        let merchantRegex = getRegexFromArray(merchantNames);
-
-        const merchantMatch = smsText.match(merchantRegex);
-
-        if (merchantMatch) {
-          merchantName = merchantMatch[0].trim();
-        }
-
-        let regex = getRegexFromArray(bankNames);
-
-        const match = smsText.match(regex);
-
-        if (match) {
-          bankName = match[0].trim();
-        }
-
-        let transaction = getTransactionInfo(smsText);
-        transaction['regexMerchantName'] = merchantName;
-        // if (
-        //   merchantName === '' ||
-        //   merchantName.toLowerCase() === 'to' ||
-        //   merchantName.toLowerCase() === 'on'
-        // ) {
+        let transaction: any = getTransactionInfo(smsText);
+        transaction['regexMerchantName'] = getMatchedValueFromRegex(
+          smsRegex['merchantRegex'],
+          smsText,
+        );
         transaction['advRegexMerchantName'] = extractTextBetweenToAndOn(
           smsText.toLowerCase(),
         );
-        // }
 
-        let typeRegex = getRegexFromArray(['sent', 'send', 'debited']);
-        const typematch = smsText.toLowerCase().match(typeRegex);
-        if (typematch) {
+        if (
+          getMatchedValueFromRegex(
+            smsRegex['transactionTypeRegex'],
+            smsText,
+          ) !== ''
+        ) {
           transaction['transactionType'] = 'debit';
         } else {
           transaction['transactionType'] = 'credit';
         }
+        transaction['date'] = getFormattedDate(date);
 
         return {
-          bankName: bankName,
+          bankName: getMatchedValueFromRegex(
+            smsRegex['bankNameRegex'],
+            smsText,
+          ),
           accNo: result.number,
           accType:
             transaction && transaction.account && transaction.account.type
@@ -259,40 +209,6 @@ const DashboardScreen: React.FC = ({setIsAuthenticated, navigation}) => {
         return null;
       }
     }
-    // Extract the bank name using regex
-    // const bankNameMatch = smsContent.match(bankNameRegex);
-    // const accountNumberMatch = smsContent.match(accountNumberRegex);
-
-    // Output the extracted data
-    // if (bankNameMatch) {
-    //   console.log('Bank Name:', bankNameMatch[1]);
-    // }
-    // if (accountNumberMatch) {
-    //   console.log('Account Number:', accountNumberMatch[1]);
-    // }
-
-    // if (bankNameMatch && accountNumberMatch) {
-    //   return {bankName: bankNameMatch[1], accNo: accountNumberMatch[1]};
-    // } else {
-    //   const regexBankAndAccount =
-    //     /Card\sno\.\s([A-Za-z0-9]+)[\s\S]*?(\w+\s?Bank)$/;
-
-    //   // Match the regex against the smsText
-    //   const match = regexBankAndAccount.exec(smsContent);
-
-    //   if (match) {
-    //     const accountNumber = match[1]; // Account number captured by the first group
-    //     const bankName = match[2]; // Bank name captured by the second group
-
-    //     // console.log('Account Number:', accountNumber);
-    //     // console.log('Bank Name:', bankName);
-    //     return {bankName: bankName, accNo: accountNumber};
-    //   } else {
-    //     // console.log('No match found');
-    //   }
-
-    //   return null;
-    // }
   };
 
   const logout = async () => {
@@ -315,20 +231,19 @@ const DashboardScreen: React.FC = ({setIsAuthenticated, navigation}) => {
         <>
           {Object.keys(smsData).map((value, key) => {
             return (
-              <View key={key}>
+              <View style={{flex: 1}} key={key}>
                 <Text style={styles.headingText}>{value}S</Text>
-                <FlatList
-                  key={'flatlist'}
-                  data={Object.keys(smsData[value])}
-                  renderItem={({item}) => (
-                    <AccountCard
-                      key={smsData[value][item].number}
-                      data={smsData[value][item]}
-                      navigation={navigation}
-                    />
-                  )}
-                  keyExtractor={(item, index) => index.toString()} // Use index as a key (fallback)
-                />
+                {Object.keys(smsData[value]).map((item, itemkey) => {
+                  return (
+                    <View key={itemkey}>
+                      <AccountCard
+                        key={smsData[value][item].number}
+                        data={smsData[value][item]}
+                        navigation={navigation}
+                      />
+                    </View>
+                  );
+                })}
               </View>
             );
           })}
@@ -351,7 +266,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 25,
     borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 10,
   },
   buttonText: {
     color: '#fff',
@@ -391,6 +306,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 20,
+    marginTop: 10,
     color: '#333',
   },
   cardContainer: {
@@ -401,10 +317,6 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     borderRadius: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
   cardTitle: {
     fontSize: 18,

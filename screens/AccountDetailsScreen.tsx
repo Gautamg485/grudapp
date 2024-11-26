@@ -13,55 +13,20 @@ const AccountDetailsScreen: React.FC = ({route}) => {
 
       <View style={styles.table}>
         <View style={[styles.row, styles.rowWhite]}>
-          <Text style={styles.label}>Bank Name:</Text>
-          <Text style={styles.value}>
+          <Text style={[styles.label, styles.fixedWidth]}>Bank Name:</Text>
+          <Text style={[styles.value, styles.fixedWidth]}>
             {data.bankName ? data.bankName.toUpperCase() : ''}
           </Text>
         </View>
 
         <View style={[styles.row, styles.rowWhite]}>
-          <Text style={styles.label}>Account Number:</Text>
-          <Text style={styles.value}>{`XX${data.accNo}`}</Text>
+          <Text style={[styles.label, styles.fixedWidth]}>Account Number:</Text>
+          <Text
+            style={[styles.value, styles.fixedWidth]}>{`XX${data.accNo}`}</Text>
         </View>
       </View>
       <Text style={styles.heading}>Transaction List</Text>
       <TabComponent data={data.transactionList} />
-      {/* <Text style={styles.heading}>Account Details</Text>
-
-      <View style={styles.table}>
-        <View style={[styles.row, styles.rowWhite]}>
-          <Text style={styles.label}>Bank Name:</Text>
-          <Text style={styles.value}>{data.bankName}</Text>
-        </View>
-
-        <View style={[styles.row, styles.rowWhite]}>
-          <Text style={styles.label}>Account Number:</Text>
-          <Text style={styles.value}>{data.accNo}</Text>
-        </View>
-      </View>
-      <Text style={styles.heading}>Transaction List</Text>
-      <ScrollView style={styles.table}>
-        {data.transactionList
-          ? data.transactionList.map((value, key) => {
-              return (
-                <View style={[styles.row, styles.rowWhite]} key={key}>
-                  <Text style={styles.label}>
-                    {value.regexMerchantName && value.regexMerchantName !== ''
-                      ? value.regexMerchantName.toUpperCase()
-                      : value.advRegexMerchantName
-                      ? value.advRegexMerchantName.toUpperCase()
-                      : value.transaction && value.transaction.merchant
-                      ? value.transaction.merchant.toUpperCase()
-                      : ''}
-                  </Text>
-                  <Text style={styles.value}>
-                    Rs. {value.transaction.amount}
-                  </Text>
-                </View>
-              );
-            })
-          : ''}
-      </ScrollView> */}
     </View>
   );
 };
@@ -72,21 +37,27 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   heading: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
+    color: 'black',
     marginTop: 20,
     marginBottom: 20,
     textAlign: 'center',
   },
   table: {
     width: '100%',
+    padding: 10,
+    borderRadius: 10,
   },
   row: {
     flexDirection: 'row',
-    paddingVertical: 15,
-    paddingHorizontal: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
+    paddingVertical: 10,
+    padding: 20,
+  },
+  fixedWidth: {
+    width: '50%', // Fixed width for both columns
   },
   rowGrey: {
     backgroundColor: '#f0f0f0', // Light grey background for even rows
@@ -96,12 +67,11 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
+    color: 'black',
     fontWeight: 'bold',
-    flex: 1,
   },
   value: {
     fontSize: 16,
-    flex: 2,
     textAlign: 'right',
   },
 });
