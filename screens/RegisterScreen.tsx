@@ -79,6 +79,9 @@ const RegisterScreen = ({navigation, setIsAuthenticated}) => {
     if (result.statusCode === 200 && result.data === 'Successfully Created') {
       setIsLoading(false);
       signInProcess(result);
+    } else {
+      setIsLoading(false);
+      dispatch({type: 'SET_ERROR', payload: 'Already Exists!'});
     }
   };
 
